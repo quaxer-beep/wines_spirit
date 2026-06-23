@@ -84,29 +84,35 @@ class MainWindow(QMainWindow):
                 background-color: #ECF0F1;
             }
             QLabel#appTitle {
+                background-color: transparent;
                 color: #ECF0F1;
                 font-size: 16px;
                 font-weight: bold;
             }
             QLabel#userName {
+                background-color: transparent;
                 color: #FFFFFF;
                 font-size: 13px;
                 font-weight: 600;
             }
             QLabel#branchName {
+                background-color: transparent;
                 color: #BDC3C7;
                 font-size: 11px;
             }
             QLabel#topBarTitle {
+                background-color: transparent;
                 color: #2C3E50;
                 font-size: 18px;
                 font-weight: bold;
             }
             QLabel#topBarDateTime {
-                color: #7F8C8D;
+                background-color: transparent;
+                color: #5D6D7E;
                 font-size: 12px;
             }
             QLabel#syncStatus {
+                background-color: transparent;
                 color: #27AE60;
                 font-size: 12px;
                 font-weight: 600;

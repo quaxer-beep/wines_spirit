@@ -175,8 +175,16 @@ QLineEdit, QComboBox, QSpinBox, QDateEdit {
     color: #2C3E50;
     min-height: 20px;
 }
+QLineEdit:disabled, QComboBox:disabled, QSpinBox:disabled, QDateEdit:disabled {
+    background-color: #F0F0F0;
+    color: #7F8C8D;
+    border: 1px solid #E0E0E0;
+}
 QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDateEdit:focus {
     border-color: #2E86DE;
+}
+QLineEdit::placeholder {
+    color: #AAB7B8;
 }
 QTableWidget {
     gridline-color: #D5D8DC;
