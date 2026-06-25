@@ -13,6 +13,7 @@ from PyQt6.QtGui import QColor, QBrush, QFont
 from src.services.auth_service import AuthService
 from src.services.config_service import ConfigService
 from src.services.export_service import ExportService
+from src.services.shift_service import ShiftService
 from src.services.sync_service import SyncService
 from src.config.settings import settings
 from src.utils.exceptions import ValidationError, NotFoundError, AuthorizationError
@@ -976,6 +977,166 @@ class SyncStatusTab(QWidget):
         self._load_sync_status()
 
 
+class ShiftsTab(QWidget):
+    def __init__(self, auth_service):
+        super().__init__()
+        self.auth_service = auth_service
+        self.shift_service = ShiftService()
+        self._build_ui()
+        self._load_shifts()
+
+    def _build_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 12, 12, 12)
+
+        top = QHBoxLayout()
+        self.btn_refresh = QPushButton("  Refresh")
+        _style_button(self.btn_refresh, "#6C757D")
+        self.btn_refresh.clicked.connect(self._load_shifts)
+        top.addWidget(self.btn_refresh)
+
+        top.addStretch()
+        layout.addLayout(top)
+        layout.addSpacing(8)
+
+        self.table = QTableWidget()
+        _style_table(self.table)
+        self.table.setColumnCount(8)
+        self.table.setHorizontalHeaderLabels([
+            "ID", "Cashier", "Branch", "Opened", "Closed",
+            "Opening Cash", "Total Sales", "Status"
+        ])
+        self.table.setColumnWidth(0, 50)
+        self.table.setColumnWidth(1, 150)
+        self.table.setColumnWidth(2, 120)
+        self.table.setColumnWidth(3, 160)
+        self.table.setColumnWidth(4, 160)
+        self.table.setColumnWidth(5, 100)
+        self.table.setColumnWidth(6, 100)
+        self.table.setColumnWidth(7, 80)
+        self.table.itemDoubleClicked.connect(self._show_shift_detail)
+        layout.addWidget(self.table)
+
+    def _load_shifts(self):
+        self.table.setSortingEnabled(False)
+        self.table.setRowCount(0)
+        try:
+            branch_id = self.auth_service.current_branch.id if self.auth_service.current_branch else None
+            shifts = self.shift_service.get_shifts(branch_id=branch_id, limit=200)
+            for row, s in enumerate(shifts):
+                self.table.insertRow(row)
+                self.table.setItem(row, 0, QTableWidgetItem(str(s["id"])))
+                self.table.setItem(row, 1, QTableWidgetItem(s.get("user_name") or ""))
+                self.table.setItem(row, 2, QTableWidgetItem(s.get("branch_name") or ""))
+
+                opened = s.get("opened_at", "")
+                if opened and len(opened) > 19:
+                    opened = opened[:19].replace("T", " ")
+                self.table.setItem(row, 3, QTableWidgetItem(opened))
+
+                closed = s.get("closed_at") or ""
+                if closed and len(closed) > 19:
+                    closed = closed[:19].replace("T", " ")
+                self.table.setItem(row, 4, QTableWidgetItem(closed))
+
+                self.table.setItem(row, 5, QTableWidgetItem(f"{s.get('opening_cash', 0):,.2f}"))
+                self.table.setItem(row, 6, QTableWidgetItem(f"{s.get('total_sales', 0):,.2f}"))
+
+                status_item = QTableWidgetItem(s.get("status", ""))
+                status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                if s.get("status") == "OPEN":
+                    status_item.setForeground(QBrush(QColor(40, 167, 69)))
+                    font = QFont()
+                    font.setBold(True)
+                    status_item.setFont(font)
+                else:
+                    status_item.setForeground(QBrush(QColor(108, 117, 125)))
+                self.table.setItem(row, 7, status_item)
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
+        self.table.setSortingEnabled(True)
+
+    def _show_shift_detail(self, item):
+        row = item.row()
+        shift_id_item = self.table.item(row, 0)
+        if not shift_id_item:
+            return
+        try:
+            shift_id = int(shift_id_item.text())
+            summary = self.shift_service.get_shift_summary(shift_id)
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Shift #{shift_id} — {summary.get('status', '')}")
+        dialog.setMinimumWidth(450)
+        dialog.setModal(True)
+
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(8)
+
+        form = QFormLayout()
+        form.setSpacing(6)
+
+        fields = [
+            ("Cashier:", summary.get("user_name", "")),
+            ("Branch:", summary.get("branch_name", "")),
+            ("Opened:", summary.get("opened_at", "")),
+            ("Closed:", summary.get("closed_at") or "—"),
+            ("Opening Cash:", f"{summary.get('opening_cash', 0):,.2f}"),
+            ("", ""),
+            ("Cash Sales:", f"{summary.get('cash_sales', 0):,.2f}"),
+            ("M-Pesa Sales:", f"{summary.get('mpesa_sales', 0):,.2f}"),
+            ("Card Sales:", f"{summary.get('card_sales', 0):,.2f}"),
+            ("Other Sales:", f"{summary.get('other_sales', 0):,.2f}"),
+            ("Total Sales:", f"{summary.get('total_sales', 0):,.2f}"),
+            ("", ""),
+            ("Expected Cash:", f"{summary.get('expected_cash', 0):,.2f}"),
+            ("Closing Cash:", f"{summary.get('closing_cash', 0):,.2f}"),
+            ("Difference:", f"{summary.get('difference', 0):+,.2f}"),
+            ("", ""),
+            ("Sales Count:", str(summary.get("sales_count", 0))),
+            ("Voided Count:", str(summary.get("voided_count", 0))),
+        ]
+
+        is_open = summary.get("status") == "OPEN"
+
+        for label, value in fields:
+            if not label:
+                layout.addSpacing(4)
+                continue
+            lbl = QLabel(label)
+            lbl.setStyleSheet("font-size: 13px; font-weight: bold; color: #2C3E50;")
+            val = QLabel(value)
+            val.setStyleSheet("font-size: 13px; color: #6C757D;")
+            if "Difference" in label and not is_open:
+                diff = summary.get("difference", 0)
+                if diff > 0:
+                    val.setStyleSheet("font-size: 13px; font-weight: bold; color: #28A745;")
+                elif diff < 0:
+                    val.setStyleSheet("font-size: 13px; font-weight: bold; color: #DC3545;")
+            form.addRow(lbl, val)
+
+        layout.addLayout(form)
+
+        if summary.get("notes"):
+            layout.addSpacing(8)
+            notes_lbl = QLabel(f"Notes: {summary['notes']}")
+            notes_lbl.setStyleSheet("font-size: 12px; color: #6C757D; font-style: italic;")
+            notes_lbl.setWordWrap(True)
+            layout.addWidget(notes_lbl)
+
+        layout.addSpacing(12)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.setStyleSheet("QDialog { background-color: white; }")
+        dialog.exec()
+
+
 class AdminScreen(QWidget):
     def __init__(self, auth_service=None, parent=None):
         super().__init__(parent)
@@ -1015,6 +1176,7 @@ class AdminScreen(QWidget):
 
         self.tabs.addTab(UsersTab(self.auth_service), "Users")
         self.tabs.addTab(BranchesTab(self.auth_service), "Branches")
+        self.tabs.addTab(ShiftsTab(self.auth_service), "Shifts")
         self.tabs.addTab(SystemTab(self.auth_service), "System")
         self.tabs.addTab(SyncStatusTab(self.auth_service), "Sync Status")
 
@@ -1027,5 +1189,7 @@ class AdminScreen(QWidget):
             widget._load_users()
         elif hasattr(widget, "_load_branches"):
             widget._load_branches()
+        elif hasattr(widget, "_load_shifts"):
+            widget._load_shifts()
         elif hasattr(widget, "_load_sync_status"):
             widget._load_sync_status()

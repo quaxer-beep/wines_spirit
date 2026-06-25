@@ -9,12 +9,14 @@ from PyQt6.QtWidgets import (
     QPushButton, QLabel, QComboBox, QSpinBox,
     QGroupBox, QFormLayout, QStackedWidget, QTextEdit,
     QMessageBox, QDoubleSpinBox,
+    QDialog, QDialogButtonBox,
 )
 
 from src.services.pos_service import PosService
 from src.services.auth_service import AuthService
 from src.services.mpesa_service import MpesaService
 from src.services.receipt_service import ReceiptService
+from src.services.shift_service import ShiftService
 from src.utils.helpers import format_currency
 from src.utils.validators import sanitize_phone
 from src.utils.exceptions import (
@@ -106,10 +108,13 @@ class PosScreen(QWidget):
         self._current_sale = None
         self._receipt_text = None
         self._receipt_raw = None
+        self._shift_service = ShiftService()
+        self._active_shift = None
 
         self._build_ui()
         self._apply_styles()
         self._connect_signals()
+        self._update_shift_status()
 
     # ------------------------------------------------------------------
     # UI Construction
@@ -136,6 +141,46 @@ class PosScreen(QWidget):
         page.setObjectName("posPage")
         layout = QVBoxLayout(page)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        shift_bar = QWidget()
+        shift_bar.setObjectName("shiftBar")
+        shift_bar.setFixedHeight(40)
+        shift_layout = QHBoxLayout(shift_bar)
+        shift_layout.setContentsMargins(12, 0, 12, 0)
+        shift_layout.setSpacing(8)
+
+        self._shift_icon = QLabel("")
+        self._shift_icon.setStyleSheet("font-size: 14px; border: none; background: transparent;")
+        shift_layout.addWidget(self._shift_icon)
+
+        self._shift_label = QLabel("Shift: --")
+        self._shift_label.setStyleSheet(
+            "font-size: 12px; font-weight: bold; border: none; background: transparent;"
+        )
+        shift_layout.addWidget(self._shift_label)
+
+        shift_layout.addStretch()
+
+        self._btn_open_shift = QPushButton("  Open Shift")
+        self._btn_open_shift.setFixedHeight(28)
+        self._btn_open_shift.setStyleSheet(
+            "background-color: #28A745; color: white; font-weight: bold; "
+            "font-size: 11px; border-radius: 4px; padding: 4px 12px;"
+        )
+        self._btn_open_shift.clicked.connect(self._open_shift)
+        shift_layout.addWidget(self._btn_open_shift)
+
+        self._btn_close_shift = QPushButton("  Close Shift")
+        self._btn_close_shift.setFixedHeight(28)
+        self._btn_close_shift.setStyleSheet(
+            "background-color: #DC3545; color: white; font-weight: bold; "
+            "font-size: 11px; border-radius: 4px; padding: 4px 12px;"
+        )
+        self._btn_close_shift.clicked.connect(self._close_shift)
+        shift_layout.addWidget(self._btn_close_shift)
+
+        layout.addWidget(shift_bar)
 
         hsplit = QSplitter(Qt.Orientation.Horizontal)
         hsplit.setHandleWidth(1)
@@ -411,6 +456,7 @@ class PosScreen(QWidget):
     def _apply_styles(self):
         self.setStyleSheet("""
             #posPage { background-color: #FFFFFF; }
+            #shiftBar { background-color: #F8F6F2; border-bottom: 1px solid #E0D8CF; }
             #leftPanel { background-color: #FFFFFF; }
             #rightPanel { background-color: #FAF8F5; }
             #receiptPage { background-color: #FAF8F5; }
@@ -461,6 +507,202 @@ class PosScreen(QWidget):
         self._btn_clear.clicked.connect(self._on_clear_cart)
         self._btn_print.clicked.connect(self._on_print_receipt)
         self._btn_new_sale.clicked.connect(self._on_new_sale)
+
+    # ------------------------------------------------------------------
+    # Shift Management
+    # ------------------------------------------------------------------
+
+    def _update_shift_status(self):
+        branch = self.auth_service.current_branch
+        user = self.auth_service.current_user
+        if not branch or not user:
+            return
+
+        try:
+            self._active_shift = self._shift_service.get_active_shift(
+                branch.id, user.id
+            )
+        except Exception:
+            self._active_shift = None
+
+        if self._active_shift:
+            opened = self._active_shift.get("opened_at", "")
+            if opened and len(opened) > 19:
+                opened = opened[:19].replace("T", " ")
+            self._shift_label.setText(f"Shift Open — {opened}")
+            self._shift_icon.setText("")
+            self._shift_label.setStyleSheet(
+                "font-size: 12px; font-weight: bold; color: #28A745; "
+                "border: none; background: transparent;"
+            )
+            self._btn_open_shift.setVisible(False)
+            self._btn_close_shift.setVisible(True)
+        else:
+            self._shift_label.setText("No Active Shift")
+            self._shift_icon.setText("")
+            self._shift_label.setStyleSheet(
+                "font-size: 12px; font-weight: bold; color: #DC3545; "
+                "border: none; background: transparent;"
+            )
+            self._btn_open_shift.setVisible(True)
+            self._btn_close_shift.setVisible(False)
+
+    def _open_shift(self):
+        branch = self.auth_service.current_branch
+        user = self.auth_service.current_user
+        if not branch or not user:
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Open Shift")
+        dialog.setMinimumWidth(350)
+        dialog.setModal(True)
+
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(12)
+
+        form = QFormLayout()
+        form.setSpacing(8)
+
+        lbl = QLabel(f"Cashier: {user.full_name or user.username}")
+        lbl.setStyleSheet("font-size: 13px; font-weight: bold;")
+        form.addRow(lbl)
+
+        lbl2 = QLabel(f"Branch: {branch.name}")
+        lbl2.setStyleSheet("font-size: 13px;")
+        form.addRow(lbl2)
+
+        self._shift_opening_cash = QDoubleSpinBox()
+        self._shift_opening_cash.setPrefix("KES ")
+        self._shift_opening_cash.setMaximum(9999999.99)
+        self._shift_opening_cash.setDecimals(2)
+        self._shift_opening_cash.setValue(0)
+        self._shift_opening_cash.setMinimumHeight(36)
+        self._shift_opening_cash.setStyleSheet("font-size: 14px;")
+        form.addRow("Opening Cash:", self._shift_opening_cash)
+
+        layout.addLayout(form)
+        layout.addSpacing(12)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.setStyleSheet("QDialog { background-color: white; }")
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            try:
+                self._shift_service.open_shift(
+                    user, branch.id, self._shift_opening_cash.value()
+                )
+                self._update_shift_status()
+                QMessageBox.information(self, "Shift Opened", "Shift has been opened successfully.")
+            except Exception as e:
+                QMessageBox.warning(self, "Error", str(e))
+
+    def _close_shift(self):
+        branch = self.auth_service.current_branch
+        user = self.auth_service.current_user
+        if not self._active_shift or not branch or not user:
+            return
+
+        shift_id = self._active_shift["id"]
+
+        try:
+            summary = self._shift_service.get_shift_summary(shift_id)
+        except Exception as e:
+            QMessageBox.warning(self, "Error", str(e))
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Close Shift")
+        dialog.setMinimumWidth(400)
+        dialog.setModal(True)
+
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(10)
+
+        form = QFormLayout()
+        form.setSpacing(6)
+
+        fields = [
+            ("Cashier:", summary.get("user_name", "")),
+            ("Branch:", summary.get("branch_name", "")),
+            ("Opened:", summary.get("opened_at", "")[:19].replace("T", " ") if summary.get("opened_at") else ""),
+            ("Opening Cash:", f"KES {summary.get('opening_cash', 0):,.2f}"),
+            ("Cash Sales:", f"KES {summary.get('cash_sales', 0):,.2f}"),
+            ("M-Pesa Sales:", f"KES {summary.get('mpesa_sales', 0):,.2f}"),
+            ("Total Sales:", f"KES {summary.get('total_sales', 0):,.2f}"),
+        ]
+        for label, value in fields:
+            lbl = QLabel(label)
+            lbl.setStyleSheet("font-size: 13px; font-weight: bold; color: #2C3E50;")
+            val = QLabel(value)
+            val.setStyleSheet("font-size: 13px; color: #6C757D;")
+            form.addRow(lbl, val)
+
+        layout.addLayout(form)
+        layout.addSpacing(8)
+
+        cash_group = QGroupBox("Cash Count")
+        cash_group.setStyleSheet(
+            "QGroupBox { font-weight: bold; border: 1px solid #DEE2E6; border-radius: 6px; "
+            "margin-top: 10px; padding-top: 16px; }"
+            "QGroupBox::title { subcontrol-origin: margin; left: 12px; padding: 0 6px; }"
+        )
+        cg_layout = QFormLayout(cash_group)
+        cg_layout.setSpacing(6)
+
+        self._shift_closing_cash = QDoubleSpinBox()
+        self._shift_closing_cash.setPrefix("KES ")
+        self._shift_closing_cash.setMaximum(9999999.99)
+        self._shift_closing_cash.setDecimals(2)
+        self._shift_closing_cash.setMinimumHeight(36)
+        self._shift_closing_cash.setStyleSheet("font-size: 14px;")
+        cg_layout.addRow("Cash in Drawer:", self._shift_closing_cash)
+
+        self._shift_notes = QLineEdit()
+        self._shift_notes.setPlaceholderText("Optional notes...")
+        self._shift_notes.setMinimumHeight(32)
+        cg_layout.addRow("Notes:", self._shift_notes)
+
+        layout.addWidget(cash_group)
+        layout.addSpacing(12)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.setStyleSheet("QDialog { background-color: white; }")
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            try:
+                self._shift_service.close_shift(
+                    user,
+                    shift_id,
+                    self._shift_closing_cash.value(),
+                    notes=self._shift_notes.text().strip() or None,
+                )
+
+                expected = summary.get("expected_cash", 0) if summary.get("expected_cash") else (
+                    summary.get("opening_cash", 0) + summary.get("total_sales", 0)
+                )
+                closing = self._shift_closing_cash.value()
+                diff = closing - expected
+
+                diff_str = f"{diff:+,.2f}".replace("+-", "-")
+                msg = (
+                    f"Shift closed successfully.\n\n"
+                    f"Expected Cash: KES {expected:,.2f}\n"
+                    f"Counted Cash:  KES {closing:,.2f}\n"
+                    f"Difference:     KES {diff_str}"
+                )
+                QMessageBox.information(self, "Shift Closed", msg)
+                self._update_shift_status()
+            except Exception as e:
+                QMessageBox.warning(self, "Error", str(e))
 
     def closeEvent(self, event: QCloseEvent):
         self._debounce_timer.stop()
@@ -1004,3 +1246,6 @@ class PosScreen(QWidget):
             self.cart_items.clear()
             self._refresh_cart()
             self._reset_mpesa_state()
+
+    def refresh(self):
+        self._update_shift_status()

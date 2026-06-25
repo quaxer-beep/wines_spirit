@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 from sqlalchemy import Date, cast, func
 
 from src.database.connection import db_manager
-from src.database.models import Branch, Payment, Product, Sale, SaleItem, StockMovement
+from src.database.models import Branch, Payment, Product, Sale, SaleItem, Shift, StockMovement
 from src.utils.exceptions import (
     AuthorizationError,
     InsufficientStockError,
@@ -101,11 +101,23 @@ class PosService:
 
             receipt_number = generate_receipt_number(branch.code, session=session)
 
+            active_shift = (
+                session.query(Shift)
+                .filter(
+                    Shift.user_id == (user.id if hasattr(user, "id") else user),
+                    Shift.branch_id == branch_id,
+                    Shift.status == "OPEN",
+                )
+                .first()
+            )
+            shift_id = active_shift.id if active_shift else None
+
             sale = self.sale_repo.create(
                 session,
                 receipt_number=receipt_number,
                 branch_id=branch_id,
                 user_id=user.id if hasattr(user, "id") else user,
+                shift_id=shift_id,
                 subtotal=subtotal,
                 discount=discount,
                 tax=tax,

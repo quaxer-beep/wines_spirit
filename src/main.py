@@ -17,6 +17,7 @@ from src.database.models import (
     Permission,
     Product,
     Role,
+    Shift,
     User,
 )
 from src.services.auth_service import AuthService
@@ -39,6 +40,20 @@ from src.utils.helpers import hash_password
 logger = logging.getLogger(__name__)
 
 
+def _run_migrations():
+    with db_manager.get_session() as session:
+        conn = session.connection()
+        cursor = conn.connection.cursor()
+
+        cursor.execute("PRAGMA table_info(sales)")
+        cols = {row[1] for row in cursor.fetchall()}
+        if "shift_id" not in cols:
+            logger.info("Migrating: adding shift_id column to sales table...")
+            cursor.execute("ALTER TABLE sales ADD COLUMN shift_id INTEGER REFERENCES shifts(id) ON DELETE SET NULL")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_sales_shift_id ON sales(shift_id)")
+            logger.info("Migration complete: shift_id added to sales.")
+
+
 def seed_default_data():
     with db_manager.get_session() as session:
         role_count = session.query(Role).count()
@@ -59,7 +74,7 @@ def seed_default_data():
         resources = [
             "pos", "inventory", "reports", "expenses",
             "admin", "users", "roles", "branches",
-            "products", "categories", "sales",
+            "products", "categories", "sales", "shifts",
         ]
 
         manager_resources = ["pos", "inventory", "reports", "expenses", "products", "sales"]
@@ -307,6 +322,8 @@ def main():
         Base.metadata.create_all(db_manager.engine)
         logger.info("Database initialized and tables created.")
 
+        _run_migrations()
+
         seed_default_data()
 
         ConfigService().load_all_into_settings()
@@ -324,10 +341,14 @@ def main():
         pos_service = PosService()
         inventory_service = InventoryService()
         reporting_service = ReportingService()
-        sync_service = SyncService()
 
-        login = LoginDialog()
-        if login.exec() == LoginDialog.DialogCode.Accepted:
+        while True:
+            login = LoginDialog()
+            if login.exec() != LoginDialog.DialogCode.Accepted:
+                logger.info("Login cancelled by user.")
+                break
+
+            sync_service = SyncService()
             main_window = MainWindow(
                 auth_service=auth_service,
                 pos_service=pos_service,
@@ -382,12 +403,16 @@ def main():
             main_window.show()
             sync_service.start()
 
-            exit_code = app.exec()
+            app.exec()
+
+            was_logout = main_window._is_logout
             sync_service.stop()
-            sys.exit(exit_code)
-        else:
-            logger.info("Login cancelled by user.")
-            sys.exit(0)
+            main_window.deleteLater()
+
+            if not was_logout:
+                break
+
+        sys.exit(0)
 
     except Exception as e:
         logger.critical("Failed to start application: %s", e, exc_info=True)

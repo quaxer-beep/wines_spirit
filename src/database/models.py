@@ -26,6 +26,50 @@ class TimestampMixin:
 
 
 # ---------------------------------------------------------------------------
+# SHIFTS
+# ---------------------------------------------------------------------------
+
+
+class Shift(Base):
+    __tablename__ = "shifts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    branch_id = Column(Integer, ForeignKey("branches.id", ondelete="RESTRICT"), nullable=False)
+    opened_at = Column(DateTime, nullable=False, default=func.now(), server_default=func.now())
+    closed_at = Column(DateTime)
+    opening_cash = Column(Float, nullable=False, default=0)
+    closing_cash = Column(Float)
+    expected_cash = Column(Float)
+    cash_sales = Column(Float, nullable=False, default=0)
+    mpesa_sales = Column(Float, nullable=False, default=0)
+    card_sales = Column(Float, nullable=False, default=0)
+    other_sales = Column(Float, nullable=False, default=0)
+    total_sales = Column(Float, nullable=False, default=0)
+    status = Column(String, nullable=False, default="OPEN")
+    notes = Column(Text)
+
+    user = relationship("User", back_populates="shifts")
+    branch = relationship("Branch", back_populates="shifts")
+    sales = relationship("Sale", back_populates="shift")
+
+    __table_args__ = (
+        CheckConstraint("status IN ('OPEN', 'CLOSED')", name="ck_shift_status"),
+        Index("idx_shifts_user_id", "user_id"),
+        Index("idx_shifts_branch_id", "branch_id"),
+        Index("idx_shifts_status", "status"),
+        Index("idx_shifts_opened_at", "opened_at"),
+    )
+
+    @validates("status")
+    def validate_status(self, key, value):
+        allowed = {"OPEN", "CLOSED"}
+        if value not in allowed:
+            raise ValueError(f"status must be one of {allowed}")
+        return value
+
+
+# ---------------------------------------------------------------------------
 # LOOKUP / REFERENCE
 # ---------------------------------------------------------------------------
 
@@ -48,6 +92,7 @@ class Branch(TimestampMixin, Base):
     expenses = relationship("Expense", back_populates="branch")
     audit_logs = relationship("AuditLog", back_populates="branch")
     sync_queue = relationship("SyncQueue", back_populates="branch")
+    shifts = relationship("Shift", back_populates="branch")
 
     __table_args__ = (
         Index("idx_branches_code", "code"),
@@ -107,6 +152,7 @@ class User(TimestampMixin, Base):
     stock_movements = relationship("StockMovement", back_populates="created_by_user")
     expenses = relationship("Expense", back_populates="recorded_by_user")
     audit_logs = relationship("AuditLog", back_populates="user")
+    shifts = relationship("Shift", back_populates="user")
 
     __table_args__ = (
         Index("idx_users_branch_id", "branch_id"),
@@ -237,6 +283,7 @@ class Sale(Base):
     receipt_number = Column(String, nullable=False, unique=True)
     branch_id = Column(Integer, ForeignKey("branches.id", ondelete="RESTRICT"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    shift_id = Column(Integer, ForeignKey("shifts.id", ondelete="SET NULL"), nullable=True)
     subtotal = Column(Float, nullable=False, default=0)
     discount = Column(Float, nullable=False, default=0)
     tax = Column(Float, nullable=False, default=0)
@@ -249,6 +296,7 @@ class Sale(Base):
 
     branch = relationship("Branch", back_populates="sales")
     user = relationship("User", back_populates="sales")
+    shift = relationship("Shift", back_populates="sales")
     items = relationship("SaleItem", back_populates="sale", cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="sale", cascade="all, delete-orphan")
     etims_invoice = relationship("EtimsInvoice", back_populates="sale", uselist=False)
@@ -258,6 +306,7 @@ class Sale(Base):
         Index("idx_sales_receipt_number", "receipt_number"),
         Index("idx_sales_branch_id", "branch_id"),
         Index("idx_sales_user_id", "user_id"),
+        Index("idx_sales_shift_id", "shift_id"),
         Index("idx_sales_status", "status"),
         Index("idx_sales_created_at", "created_at"),
     )

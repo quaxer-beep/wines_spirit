@@ -60,6 +60,7 @@ class MainWindow(QMainWindow):
 
         self._nav_buttons = []
         self._screen_widgets = []
+        self._is_logout = False
 
         self._setup_ui()
         self._connect_signals()
@@ -243,6 +244,9 @@ class MainWindow(QMainWindow):
         for btn, idx in self._nav_buttons:
             btn.setChecked(idx == index)
         self.content_stack.setCurrentIndex(index)
+        widget = self._screen_widgets[index]
+        if hasattr(widget, "refresh"):
+            widget.refresh()
 
     def _update_datetime(self):
         now = datetime.now()
@@ -305,10 +309,12 @@ class MainWindow(QMainWindow):
             btn.setVisible(has_perm)
 
     def _on_logout(self):
+        self._is_logout = True
         self.sync_service.stop()
         self.auth_service.logout()
         self.close()
 
     def closeEvent(self, event):
-        self.sync_service.stop()
+        if not self._is_logout:
+            self.sync_service.stop()
         event.accept()
