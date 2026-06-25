@@ -26,73 +26,74 @@ class LoginDialog(QDialog):
         self.setWindowTitle("Wines & Spirits POS - Login")
         self.setMinimumWidth(400)
         self.setModal(True)
-        self.setStyleSheet("""
+        self.setStyleSheet(r"""
             QDialog {
-                background-color: #F5F6FA;
+                background-color: #FFFFFF;
             }
             QLabel#titleLabel {
-                color: #2C3E50;
-                font-size: 22px;
+                color: #1B1B2F;
+                font-size: 24px;
                 font-weight: bold;
             }
             QLabel#subtitleLabel {
-                color: #7F8C8D;
+                color: #8E8E93;
                 font-size: 13px;
             }
             QLabel#fieldLabel {
-                color: #2C3E50;
+                color: #1B1B2F;
                 font-size: 13px;
                 font-weight: 600;
             }
             QLabel#statusLabel {
-                color: #E74C3C;
+                color: #C0392B;
                 font-size: 12px;
             }
             QComboBox, QLineEdit {
-                border: 1px solid #D5D8DC;
-                border-radius: 6px;
-                padding: 10px 14px;
+                border: 1.5px solid #E0D8CF;
+                border-radius: 8px;
+                padding: 12px 16px;
                 font-size: 14px;
-                background-color: #FFFFFF;
-                color: #2C3E50;
-                min-height: 20px;
+                background-color: #FAF8F5;
+                color: #3D3D3D;
+                min-height: 22px;
             }
             QComboBox:focus, QLineEdit:focus {
-                border-color: #2E86DE;
+                border-color: #C8A45C;
                 background-color: #FFFFFF;
             }
             QComboBox::drop-down {
                 border: none;
-                padding-right: 10px;
+                padding-right: 12px;
             }
             QComboBox::down-arrow {
                 image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 6px solid #7F8C8D;
+                border-left: 6px solid transparent;
+                border-right: 6px solid transparent;
+                border-top: 7px solid #8E8E93;
                 margin-right: 8px;
             }
             QComboBox:hover, QLineEdit:hover {
-                border-color: #AAB7B8;
+                border-color: #C8A45C;
             }
             QPushButton#loginButton {
-                background-color: #2E86DE;
+                background-color: #C8A45C;
                 color: #FFFFFF;
                 border: none;
-                border-radius: 6px;
-                padding: 12px 24px;
-                font-size: 15px;
+                border-radius: 8px;
+                padding: 14px 28px;
+                font-size: 16px;
                 font-weight: bold;
-                min-height: 20px;
+                min-height: 22px;
             }
             QPushButton#loginButton:hover {
-                background-color: #2471A3;
+                background-color: #B8923E;
             }
             QPushButton#loginButton:pressed {
-                background-color: #1B4F72;
+                background-color: #A07E2E;
             }
             QPushButton#loginButton:disabled {
-                background-color: #AAB7B8;
+                background-color: #D5CBBE;
+                color: #FAF8F5;
             }
         """)
 

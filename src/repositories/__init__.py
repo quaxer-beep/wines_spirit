@@ -6,6 +6,7 @@ from src.repositories.sale_repository import SaleRepository
 from src.repositories.expense_repository import ExpenseRepository
 from src.repositories.sync_repository import SyncQueueRepository, AuditLogRepository
 from src.repositories.branch_repository import BranchRepository
+from src.repositories.config_repository import ConfigRepository
 
 __all__ = [
     "BaseRepository",
@@ -17,4 +18,5 @@ __all__ = [
     "SyncQueueRepository",
     "AuditLogRepository",
     "BranchRepository",
+    "ConfigRepository",
 ]

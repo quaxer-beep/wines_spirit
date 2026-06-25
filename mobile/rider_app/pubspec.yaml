@@ -1,0 +1,32 @@
+name: rider_app
+description: Wines & Spirits Rider Delivery App
+version: 1.0.0
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  shared_core:
+    path: ../shared_core
+  provider: ^6.1.0
+  flutter_secure_storage: ^9.0.0
+  geolocator: ^10.0.0
+  google_maps_flutter: ^2.5.0
+  firebase_messaging: ^14.7.0
+  flutter_local_notifications: ^16.3.0
+  image_picker: ^1.0.0
+  intl: ^0.19.0
+  url_launcher: ^6.2.0
+  connectivity_plus: ^5.0.0
+  local_auth: ^2.1.0
+  signature: ^5.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

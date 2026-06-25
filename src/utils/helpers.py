@@ -1,4 +1,4 @@
-import re
+﻿import re
 from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -18,16 +18,60 @@ def _get_sequence(key, today):
     return _sequence_counters[cache_key]
 
 
-def generate_receipt_number(branch_code, date=None):
-    today = date or date.today()
-    seq = _get_sequence(f"rcp_{branch_code}", today)
-    return f"RCP-{branch_code}-{today.strftime('%Y%m%d')}-{seq:04d}"
+def generate_receipt_number(branch_code, ref_date=None, session=None):
+    today = ref_date or date.today()
+    date_str = today.strftime("%Y%m%d")
+    prefix = f"RCP-{branch_code}-{date_str}-"
+
+    seq = 0
+    if session is not None:
+        from sqlalchemy import Integer, cast, func
+        from src.database.models import Sale
+        max_seq = (
+            session.query(
+                func.max(cast(func.substr(Sale.receipt_number, -4), Integer))
+            )
+            .filter(Sale.receipt_number.like(f"{prefix}%"))
+            .scalar()
+        )
+        if max_seq is not None:
+            seq = max_seq
+    else:
+        seq = _get_sequence(f"rcp_{branch_code}", today) - 1
+
+    seq += 1
+    return f"{prefix}{seq:04d}"
 
 
-def generate_invoice_number(date=None):
-    today = date or date.today()
-    seq = _get_sequence("inv", today)
-    return f"INV-{today.strftime('%Y%m%d')}-{seq:04d}"
+def generate_invoice_number(ref_date=None, session=None):
+    today = ref_date or date.today()
+    date_str = today.strftime("%Y%m%d")
+    prefix = f"INV-{date_str}-"
+
+    seq = 0
+    from sqlalchemy import Integer, cast, func
+    from src.database.models import EtimsInvoice
+
+    def _do_query(s):
+        return (
+            s.query(func.max(cast(func.substr(EtimsInvoice.invoice_number, -4), Integer)))
+            .filter(EtimsInvoice.invoice_number.like(f"{prefix}%"))
+            .scalar()
+        )
+
+    if session is not None:
+        max_seq = _do_query(session)
+        if max_seq is not None:
+            seq = max_seq
+    else:
+        from src.database.connection import db_manager
+        with db_manager.get_session() as s:
+            max_seq = _do_query(s)
+            if max_seq is not None:
+                seq = max_seq
+
+    seq += 1
+    return f"{prefix}{seq:04d}"
 
 
 def format_currency(amount):

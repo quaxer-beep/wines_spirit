@@ -29,6 +29,7 @@ class Settings:
     SYNC_INTERVAL_SECONDS = 300
     SYNC_API_URL = ""
     SYNC_API_KEY = ""
+    SYNC_EXPORT_DIR = str(BASE_DIR / "data" / "pos_databases")
     PRINTER_WIDTH_58MM = 32
     PRINTER_WIDTH_80MM = 48
     PRINTER_DEFAULT = "58mm"

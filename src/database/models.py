@@ -497,3 +497,16 @@ class EtimsInvoice(Base):
         if value not in allowed:
             raise ValueError(f"submission_status must be one of {allowed}")
         return value
+
+
+class Config(Base):
+    __tablename__ = "config"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    key = Column(String, nullable=False, unique=True)
+    value = Column(Text)
+    updated_at = Column(DateTime, nullable=False, default=func.now(), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        Index("idx_config_key", "key"),
+    )

@@ -1,0 +1,28 @@
+name: executive_app
+description: Wines & Spirits Executive BI App
+version: 1.0.0
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  shared_core:
+    path: ../shared_core
+  provider: ^6.1.0
+  flutter_secure_storage: ^9.0.0
+  firebase_messaging: ^14.7.0
+  flutter_local_notifications: ^16.3.0
+  intl: ^0.19.0
+  fl_chart: ^0.66.0
+  url_launcher: ^6.2.0
+  connectivity_plus: ^5.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

@@ -21,21 +21,23 @@ class _SidebarButton(QPushButton):
         self.setStyleSheet("""
             QPushButton {
                 background-color: transparent;
-                color: #BDC3C7;
+                color: #8E8E93;
                 border: none;
-                border-radius: 6px;
-                padding: 12px 20px;
+                border-radius: 8px;
+                padding: 14px 22px;
                 font-size: 14px;
+                font-weight: 600;
                 text-align: left;
             }
             QPushButton:hover {
-                background-color: #34495E;
-                color: #FFFFFF;
+                background-color: #2C2C4A;
+                color: #C8A45C;
             }
             QPushButton:checked {
-                background-color: #34495E;
-                color: #FFFFFF;
+                background-color: #2C2C4A;
+                color: #C8A45C;
                 font-weight: bold;
+                border-left: 3px solid #C8A45C;
             }
         """)
 
@@ -71,67 +73,68 @@ class MainWindow(QMainWindow):
 
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #ECF0F1;
+                background-color: #F5F0EB;
             }
             QWidget#sidebar {
-                background-color: #2C3E50;
+                background-color: #1B1B2F;
             }
             QWidget#topBar {
                 background-color: #FFFFFF;
-                border-bottom: 1px solid #D5D8DC;
+                border-bottom: 1.5px solid #E0D8CF;
             }
             QWidget#contentArea {
-                background-color: #ECF0F1;
+                background-color: #F5F0EB;
             }
             QLabel#appTitle {
                 background-color: transparent;
-                color: #ECF0F1;
-                font-size: 16px;
+                color: #C8A45C;
+                font-size: 18px;
                 font-weight: bold;
+                letter-spacing: 1px;
             }
             QLabel#userName {
                 background-color: transparent;
                 color: #FFFFFF;
                 font-size: 13px;
-                font-weight: 600;
+                font-weight: 700;
             }
             QLabel#branchName {
                 background-color: transparent;
-                color: #BDC3C7;
+                color: #8E8E93;
                 font-size: 11px;
             }
             QLabel#topBarTitle {
                 background-color: transparent;
-                color: #2C3E50;
+                color: #1B1B2F;
                 font-size: 18px;
                 font-weight: bold;
             }
             QLabel#topBarDateTime {
                 background-color: transparent;
-                color: #5D6D7E;
+                color: #8E8E93;
                 font-size: 12px;
             }
             QLabel#syncStatus {
                 background-color: transparent;
-                color: #27AE60;
+                color: #2ECC71;
                 font-size: 12px;
                 font-weight: 600;
             }
             QPushButton#logoutButton {
-                background-color: #E74C3C;
+                background-color: #C0392B;
                 color: #FFFFFF;
                 border: none;
-                border-radius: 4px;
-                padding: 8px 16px;
+                border-radius: 6px;
+                padding: 10px 18px;
                 font-size: 12px;
                 font-weight: bold;
                 min-height: 16px;
             }
             QPushButton#logoutButton:hover {
-                background-color: #C0392B;
+                background-color: #A93226;
             }
             QPushButton#logoutButton:pressed {
-                background-color: #A93226;
+                background-color: #922B21;
             }
         """)
 

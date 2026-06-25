@@ -1,5 +1,6 @@
 import logging
 import sys
+import traceback
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
@@ -19,6 +20,7 @@ from src.database.models import (
     User,
 )
 from src.services.auth_service import AuthService
+from src.services.config_service import ConfigService
 from src.services.inventory_service import InventoryService
 from src.services.pos_service import PosService
 from src.services.reporting_service import ReportingService
@@ -143,103 +145,154 @@ def seed_default_data():
         logger.info("Default data seeded successfully.")
 
 
-STYLESHEET = """
-QMainWindow, QWidget {
-    background-color: #F5F6FA;
-}
-QPushButton {
-    background-color: #2E86DE;
-    color: #FFFFFF;
+PREMIUM_BG = "#F5F0EB"
+PREMIUM_SIDEBAR = "#1B1B2F"
+PREMIUM_GOLD = "#C8A45C"
+PREMIUM_GOLD_HOVER = "#B8923E"
+PREMIUM_GOLD_PRESSED = "#A07E2E"
+PREMIUM_DARK = "#2C3E50"
+PREMIUM_TEXT = "#3D3D3D"
+PREMIUM_MUTED = "#8E8E93"
+PREMIUM_BORDER = "#E0D8CF"
+PREMIUM_DANGER = "#C0392B"
+PREMIUM_WHITE = "#FFFFFF"
+
+STYLESHEET = f"""
+QMainWindow, QWidget {{
+    background-color: {PREMIUM_BG};
+}}
+QPushButton {{
+    background-color: {PREMIUM_GOLD};
+    color: {PREMIUM_WHITE};
     border: none;
-    border-radius: 4px;
-    padding: 8px 16px;
-    font-size: 13px;
-    font-weight: 600;
-    min-height: 20px;
-}
-QPushButton:hover {
-    background-color: #2471A3;
-}
-QPushButton:pressed {
-    background-color: #1B4F72;
-}
-QPushButton:disabled {
-    background-color: #AAB7B8;
-}
-QLineEdit, QComboBox, QSpinBox, QDateEdit {
-    border: 1px solid #D5D8DC;
-    border-radius: 4px;
-    padding: 6px;
-    font-size: 13px;
-    background-color: #FFFFFF;
-    color: #2C3E50;
-    min-height: 20px;
-}
-QLineEdit:disabled, QComboBox:disabled, QSpinBox:disabled, QDateEdit:disabled {
-    background-color: #F0F0F0;
-    color: #7F8C8D;
-    border: 1px solid #E0E0E0;
-}
-QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDateEdit:focus {
-    border-color: #2E86DE;
-}
-QLineEdit::placeholder {
-    color: #AAB7B8;
-}
-QTableWidget {
-    gridline-color: #D5D8DC;
-    border: 1px solid #D5D8DC;
-    border-radius: 4px;
-    background-color: #FFFFFF;
-    alternate-background-color: #F8F9FA;
-}
-QTableWidget::item {
-    padding: 4px 8px;
-}
-QHeaderView::section {
-    background-color: #2C3E50;
-    color: #FFFFFF;
-    font-weight: bold;
-    padding: 8px;
-    border: none;
-}
-QTabWidget::pane {
-    border: 1px solid #D5D8DC;
-    border-radius: 4px;
-    background-color: #FFFFFF;
-}
-QTabBar::tab {
-    background-color: #ECF0F1;
-    color: #2C3E50;
-    padding: 8px 16px;
-    border: 1px solid #D5D8DC;
-    border-bottom: none;
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
-    margin-right: 2px;
-}
-QTabBar::tab:selected {
-    background-color: #FFFFFF;
-    color: #2E86DE;
-    font-weight: bold;
-}
-QTabBar::tab:hover:!selected {
-    background-color: #D5D8DC;
-}
-QGroupBox {
-    border: 1px solid #D5D8DC;
     border-radius: 6px;
-    margin-top: 12px;
-    padding: 16px 12px 12px 12px;
-    font-weight: bold;
-    color: #2C3E50;
-}
-QGroupBox::title {
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    min-height: 20px;
+}}
+QPushButton:hover {{
+    background-color: {PREMIUM_GOLD_HOVER};
+}}
+QPushButton:pressed {{
+    background-color: {PREMIUM_GOLD_PRESSED};
+}}
+QPushButton:disabled {{
+    background-color: #D5CBBE;
+    color: #F5F0EB;
+}}
+QLineEdit, QComboBox, QSpinBox, QDateEdit {{
+    border: 1.5px solid {PREMIUM_BORDER};
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    background-color: {PREMIUM_WHITE};
+    color: {PREMIUM_TEXT};
+    min-height: 22px;
+}}
+QLineEdit:disabled, QComboBox:disabled, QSpinBox:disabled, QDateEdit:disabled {{
+    background-color: #F8F6F2;
+    color: {PREMIUM_MUTED};
+    border: 1.5px solid #EBE5DE;
+}}
+QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDateEdit:focus {{
+    border-color: {PREMIUM_GOLD};
+}}
+QLineEdit::placeholder {{
+    color: {PREMIUM_MUTED};
+}}
+QTableWidget {{
+    gridline-color: {PREMIUM_BORDER};
+    border: 1.5px solid {PREMIUM_BORDER};
+    border-radius: 6px;
+    background-color: {PREMIUM_WHITE};
+    alternate-background-color: #FAF8F5;
+}}
+QTableWidget::item {{
+    padding: 6px 10px;
+}}
+QHeaderView::section {{
+    background-color: {PREMIUM_SIDEBAR};
+    color: {PREMIUM_WHITE};
+    font-weight: 700;
+    padding: 10px 8px;
+    border: none;
+    font-size: 12px;
+    text-transform: uppercase;
+}}
+QTabWidget::pane {{
+    border: 1.5px solid {PREMIUM_BORDER};
+    border-radius: 6px;
+    background-color: {PREMIUM_WHITE};
+}}
+QTabBar::tab {{
+    background-color: #EDE8E2;
+    color: {PREMIUM_TEXT};
+    padding: 10px 20px;
+    border: 1.5px solid {PREMIUM_BORDER};
+    border-bottom: none;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    margin-right: 2px;
+    font-weight: 600;
+}}
+QTabBar::tab:selected {{
+    background-color: {PREMIUM_WHITE};
+    color: {PREMIUM_GOLD};
+    font-weight: 700;
+}}
+QTabBar::tab:hover:!selected {{
+    background-color: #E0D8CF;
+}}
+QGroupBox {{
+    border: 1.5px solid {PREMIUM_BORDER};
+    border-radius: 8px;
+    margin-top: 14px;
+    padding: 20px 16px 14px 16px;
+    font-weight: 700;
+    color: {PREMIUM_DARK};
+    background-color: {PREMIUM_WHITE};
+}}
+QGroupBox::title {{
     subcontrol-origin: margin;
-    left: 12px;
-    padding: 0 6px;
-}
+    left: 14px;
+    padding: 0 8px;
+}}
+QScrollBar:vertical {{
+    background-color: #F5F0EB;
+    width: 10px;
+    border: none;
+    border-radius: 5px;
+}}
+QScrollBar::handle:vertical {{
+    background-color: #D5CBBE;
+    border-radius: 5px;
+    min-height: 30px;
+}}
+QScrollBar::handle:vertical:hover {{
+    background-color: {PREMIUM_MUTED};
+}}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+    height: 0;
+}}
 """
+
+
+def _global_excepthook(exc_type, exc_value, exc_tb):
+    msg = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    crash_path = Settings.BASE_DIR / "crash.log"
+    with open(str(crash_path), "w", encoding="utf-8") as f:
+        f.write(msg)
+    # Also try the Qt message box
+    try:
+        app = QApplication.instance()
+        if app:
+            QMessageBox.critical(None, "Crash", f"An error occurred:\n\n{exc_value}\n\nSee crash.log for details.")
+    except Exception:
+        pass
+    sys.__excepthook__(exc_type, exc_value, exc_tb)
+
+sys.excepthook = _global_excepthook
 
 
 def main():
@@ -255,6 +308,8 @@ def main():
         logger.info("Database initialized and tables created.")
 
         seed_default_data()
+
+        ConfigService().load_all_into_settings()
 
         app = QApplication(sys.argv)
         app.setApplicationName(Settings.APP_NAME)

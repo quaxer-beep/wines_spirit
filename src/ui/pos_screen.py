@@ -1,7 +1,7 @@
 import logging
 
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont, QColor, QBrush
+from PyQt6.QtGui import QCloseEvent, QFont, QColor, QBrush
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QLineEdit, QTableWidget, QTableWidgetItem,
@@ -28,9 +28,11 @@ logger = logging.getLogger(__name__)
 
 CLR_GREEN_DARK = "#27AE60"
 CLR_GREEN_BRIGHT = "#2ECC71"
-CLR_MUTED = "#95A5A6"
-CLR_RED = "#E74C3C"
-CLR_LIGHT_GRAY = "#F8F9FA"
+CLR_MUTED = "#8E8E93"
+CLR_RED = "#C0392B"
+CLR_LIGHT_GRAY = "#FAF8F5"
+CLR_GOLD = "#C8A45C"
+CLR_DARK = "#1B1B2F"
 
 
 class _Obj:
@@ -222,7 +224,7 @@ class PosScreen(QWidget):
         self._lbl_vat.setStyleSheet("font-size: 16px;")
         self._lbl_grand_total = QLabel("KES 0.00")
         self._lbl_grand_total.setStyleSheet(
-            f"font-size: 28px; font-weight: bold; color: {CLR_GREEN_DARK};"
+            f"font-size: 28px; font-weight: bold; color: {CLR_GOLD};"
         )
 
         gl.addWidget(QLabel("Subtotal:"))
@@ -272,7 +274,7 @@ class PosScreen(QWidget):
 
         self._lbl_change = QLabel("Change: KES 0.00")
         self._lbl_change.setStyleSheet(
-            f"font-size: 16px; font-weight: bold; color: {CLR_GREEN_DARK};"
+            f"font-size: 16px; font-weight: bold; color: {CLR_GOLD};"
         )
         layout.addRow(self._lbl_change)
         return w
@@ -292,8 +294,8 @@ class PosScreen(QWidget):
         self._btn_stk_push = QPushButton("Send STK Push")
         self._btn_stk_push.setMinimumHeight(40)
         self._btn_stk_push.setStyleSheet(
-            f"background-color: {CLR_GREEN_BRIGHT}; color: white; "
-            f"font-weight: bold; font-size: 14px; border-radius: 6px;"
+            f"background-color: {CLR_GOLD}; color: white; "
+            f"font-weight: bold; font-size: 14px; border-radius: 8px;"
         )
         btn_row.addWidget(self._btn_stk_push)
 
@@ -334,8 +336,8 @@ class PosScreen(QWidget):
         self._btn_mixed_stk = QPushButton("Send STK Push")
         self._btn_mixed_stk.setMinimumHeight(36)
         self._btn_mixed_stk.setStyleSheet(
-            f"background-color: {CLR_GREEN_BRIGHT}; color: white; "
-            f"font-weight: bold; border-radius: 6px;"
+            f"background-color: {CLR_GOLD}; color: white; "
+            f"font-weight: bold; border-radius: 8px;"
         )
         btn_row.addWidget(self._btn_mixed_stk)
 
@@ -351,8 +353,8 @@ class PosScreen(QWidget):
         self._btn_complete.setMinimumHeight(52)
         self._btn_complete.setEnabled(False)
         self._btn_complete.setStyleSheet(
-            f"background-color: {CLR_GREEN_BRIGHT}; color: white; "
-            f"font-size: 18px; font-weight: bold; border-radius: 8px;"
+            f"background-color: {CLR_GOLD}; color: white; "
+            f"font-size: 18px; font-weight: bold; border-radius: 10px;"
         )
         parent_layout.addWidget(self._btn_complete)
 
@@ -390,7 +392,7 @@ class PosScreen(QWidget):
         self._btn_print = QPushButton("Print Receipt")
         self._btn_print.setMinimumHeight(48)
         self._btn_print.setStyleSheet(
-            f"background-color: {CLR_GREEN_BRIGHT}; color: white; "
+            f"background-color: {CLR_GOLD}; color: white; "
             f"font-size: 16px; font-weight: bold; border-radius: 8px;"
         )
         btn_row.addWidget(self._btn_print, stretch=1)
@@ -398,8 +400,8 @@ class PosScreen(QWidget):
         self._btn_new_sale = QPushButton("New Sale")
         self._btn_new_sale.setMinimumHeight(48)
         self._btn_new_sale.setStyleSheet(
-            "background-color: #3498DB; color: white; "
-            "font-size: 16px; font-weight: bold; border-radius: 8px;"
+            f"background-color: {CLR_GREEN_DARK}; color: white; "
+            f"font-size: 16px; font-weight: bold; border-radius: 8px;"
         )
         btn_row.addWidget(self._btn_new_sale, stretch=1)
 
@@ -408,37 +410,38 @@ class PosScreen(QWidget):
 
     def _apply_styles(self):
         self.setStyleSheet("""
-            #posPage { background-color: white; }
-            #leftPanel { background-color: white; }
-            #rightPanel { background-color: #F8F9FA; }
-            #receiptPage { background-color: #F8F9FA; }
+            #posPage { background-color: #FFFFFF; }
+            #leftPanel { background-color: #FFFFFF; }
+            #rightPanel { background-color: #FAF8F5; }
+            #receiptPage { background-color: #FAF8F5; }
             #totalsGroup, #paymentGroup {
-                border: 1px solid #ddd;
-                border-radius: 8px;
-                padding: 16px;
+                border: 1.5px solid #E0D8CF;
+                border-radius: 10px;
+                padding: 18px;
                 font-size: 14px;
+                background-color: #FFFFFF;
             }
             QTableWidget {
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                gridline-color: #eee;
+                border: 1.5px solid #E0D8CF;
+                border-radius: 6px;
+                gridline-color: #EDE8E2;
                 font-size: 13px;
             }
             QHeaderView::section {
-                background-color: #f0f0f0;
-                padding: 6px;
+                background-color: #1B1B2F;
+                color: #FFFFFF;
+                padding: 8px;
                 border: none;
-                border-bottom: 2px solid #ddd;
                 font-weight: bold;
-                font-size: 13px;
+                font-size: 12px;
             }
             QLineEdit, QComboBox, QDoubleSpinBox, QSpinBox {
-                border: 1px solid #ccc;
-                border-radius: 6px;
-                padding: 6px 10px;
+                border: 1.5px solid #E0D8CF;
+                border-radius: 8px;
+                padding: 8px 12px;
             }
             QLineEdit:focus, QComboBox:focus, QDoubleSpinBox:focus {
-                border-color: #2ECC71;
+                border-color: #C8A45C;
             }
         """)
 
@@ -458,6 +461,11 @@ class PosScreen(QWidget):
         self._btn_clear.clicked.connect(self._on_clear_cart)
         self._btn_print.clicked.connect(self._on_print_receipt)
         self._btn_new_sale.clicked.connect(self._on_new_sale)
+
+    def closeEvent(self, event: QCloseEvent):
+        self._debounce_timer.stop()
+        self._mpesa_poll_timer.stop()
+        event.accept()
 
     # ------------------------------------------------------------------
     # Search
@@ -569,7 +577,7 @@ class PosScreen(QWidget):
             spin.setValue(item["quantity"])
             spin.setAlignment(Qt.AlignmentFlag.AlignCenter)
             spin.valueChanged.connect(
-                lambda val, idx=i: self._on_qty_changed(idx, val)
+                lambda val, idx=idx: self._on_qty_changed(idx, val)
             )
             self._cart_table.setCellWidget(row, 1, spin)
 
@@ -591,7 +599,7 @@ class PosScreen(QWidget):
                 f"font-weight: bold; border-radius: 16px; border: none;"
             )
             btn_remove.clicked.connect(
-                lambda checked, idx=i: self._remove_cart_item(idx)
+                lambda checked, idx=idx: self._remove_cart_item(idx)
             )
             self._cart_table.setCellWidget(row, 4, btn_remove)
 
@@ -716,6 +724,9 @@ class PosScreen(QWidget):
             button.setEnabled(True)
 
     def _poll_mpesa_status(self):
+        if not self.isVisible():
+            self._mpesa_poll_timer.stop()
+            return
         if not self._checkout_request_id or self._mpesa_verified:
             return
         try:
@@ -750,6 +761,16 @@ class PosScreen(QWidget):
         method_map = {0: "CASH", 1: "MPESA", 2: "MIXED"}
         method = method_map[method_idx]
         grand_total = self._grand_total()
+
+        if method == "CASH":
+            cash_received = self._cash_received.value()
+            if cash_received < grand_total - 0.01:
+                QMessageBox.warning(
+                    self, "Insufficient Payment",
+                    f"Amount received ({format_currency(cash_received)}) "
+                    f"is less than the grand total ({format_currency(grand_total)}).",
+                )
+                return
 
         if method == "MPESA" and not self._mpesa_verified:
             QMessageBox.warning(

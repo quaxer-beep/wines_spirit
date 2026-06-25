@@ -99,7 +99,7 @@ class PosService:
             tax = round(calculate_tax(subtotal), 2)
             grand_total = round(subtotal + tax - discount, 2)
 
-            receipt_number = generate_receipt_number(branch.code)
+            receipt_number = generate_receipt_number(branch.code, session=session)
 
             sale = self.sale_repo.create(
                 session,

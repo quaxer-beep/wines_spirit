@@ -11,6 +11,8 @@ from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QColor, QBrush, QFont
 
 from src.services.auth_service import AuthService
+from src.services.config_service import ConfigService
+from src.services.export_service import ExportService
 from src.services.sync_service import SyncService
 from src.config.settings import settings
 from src.utils.exceptions import ValidationError, NotFoundError, AuthorizationError
@@ -670,6 +672,7 @@ class SystemTab(QWidget):
     def __init__(self, auth_service):
         super().__init__()
         self.auth_service = auth_service
+        self.config_service = ConfigService()
         self._build_ui()
 
     def _build_ui(self):
@@ -759,20 +762,24 @@ class SystemTab(QWidget):
         dialog = MpesaConfigDialog(self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             data = dialog.get_data()
-            settings.MPESA_CONSUMER_KEY = data["consumer_key"]
-            settings.MPESA_CONSUMER_SECRET = data["consumer_secret"]
-            settings.MPESA_PASSKEY = data["passkey"]
-            settings.MPESA_SHORTCODE = data["shortcode"]
-            settings.MPESA_ENVIRONMENT = data["environment"]
+            self.config_service.save_mpesa_config(
+                consumer_key=data["consumer_key"],
+                consumer_secret=data["consumer_secret"],
+                passkey=data["passkey"],
+                shortcode=data["shortcode"],
+                environment=data["environment"],
+            )
             self._refresh_mpesa_status()
 
     def _config_etims(self):
         dialog = EtimsConfigDialog(self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             data = dialog.get_data()
-            settings.ETIMS_ENDPOINT = data["endpoint"]
-            settings.ETIMS_USERNAME = data["username"]
-            settings.ETIMS_PASSWORD = data["password"]
+            self.config_service.save_etims_config(
+                endpoint=data["endpoint"],
+                username=data["username"],
+                password=data["password"],
+            )
             self._refresh_etims_status()
 
     def _refresh_mpesa_status(self):
@@ -842,6 +849,11 @@ class SyncStatusTab(QWidget):
         _style_button(self.btn_sync_now)
         self.btn_sync_now.clicked.connect(self._sync_now)
         actions.addWidget(self.btn_sync_now)
+
+        self.btn_export = QPushButton("  Export to Ecommerce")
+        _style_button(self.btn_export, "#28A745")
+        self.btn_export.clicked.connect(self._export_now)
+        actions.addWidget(self.btn_export)
 
         self.btn_refresh = QPushButton("  Refresh")
         _style_button(self.btn_refresh, "#6C757D")
@@ -934,6 +946,33 @@ class SyncStatusTab(QWidget):
         finally:
             self.btn_sync_now.setText("  Sync Now")
             self.btn_sync_now.setEnabled(True)
+        self._load_sync_status()
+
+    def _export_now(self):
+        self.btn_export.setEnabled(False)
+        self.btn_export.setText("Exporting...")
+        try:
+            svc = ExportService()
+            results = svc.export_all()
+            lines = []
+            for r in results:
+                if r["status"] == "ok":
+                    lines.append(
+                        f"  {r['branch_code']} ({r['branch_name']}): "
+                        f"{r['products_exported']} products → {r['path']}"
+                    )
+                else:
+                    lines.append(
+                        f"  {r['branch_code']} ({r['branch_name']}): "
+                        f"FAILED — {r.get('error', 'unknown')}"
+                    )
+            msg = "\n".join(lines)
+            QMessageBox.information(self, "Export Complete", msg)
+        except Exception as e:
+            QMessageBox.warning(self, "Export Error", str(e))
+        finally:
+            self.btn_export.setText("  Export to Ecommerce")
+            self.btn_export.setEnabled(True)
         self._load_sync_status()
 
 
